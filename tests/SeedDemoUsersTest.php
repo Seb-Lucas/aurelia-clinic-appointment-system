@@ -80,4 +80,29 @@ class SeedDemoUsersTest extends TestCase
             $this->assertFileDoesNotExist($dbPath);
         }
     }
+
+    public function testMigrationsAreRecordedAndSafeToRunMoreThanOnce(): void
+    {
+        $pdoProperty = new \ReflectionProperty(Database::class, 'pdo');
+        $pdoProperty->setAccessible(true);
+        $pdoProperty->setValue(null, null);
+
+        Database::initialize([
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+        ]);
+        Database::runMigrations(['driver' => 'sqlite']);
+        Database::runMigrations(['driver' => 'sqlite']);
+
+        $migrations = Database::getConnection()->query(
+            'SELECT migration FROM schema_migrations ORDER BY migration'
+        )->fetchAll(\PDO::FETCH_COLUMN);
+
+        $this->assertSame([
+            '001_initial_schema.sql',
+            '002_demo_doctor_services.sql',
+        ], $migrations);
+
+        $pdoProperty->setValue(null, null);
+    }
 }

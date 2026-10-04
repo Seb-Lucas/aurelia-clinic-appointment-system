@@ -126,8 +126,12 @@ class Database
             }
 
             $statements = preg_split('/;\s*(?:\r?\n|$)/', $sql, -1, PREG_SPLIT_NO_EMPTY);
+            $useTransaction = $driver !== 'mysql';
             try {
-                self::$pdo->beginTransaction();
+                if ($useTransaction) {
+                    self::$pdo->beginTransaction();
+                }
+
                 foreach ($statements as $statement) {
                     $clean = trim($statement);
                     if ($clean !== '') {
@@ -136,9 +140,11 @@ class Database
                 }
                 $record = self::$pdo->prepare('INSERT INTO schema_migrations (migration) VALUES (:migration)');
                 $record->execute(['migration' => $migration]);
-                self::$pdo->commit();
+                if ($useTransaction) {
+                    self::$pdo->commit();
+                }
             } catch (\Throwable $e) {
-                if (self::$pdo->inTransaction()) {
+                if ($useTransaction && self::$pdo->inTransaction()) {
                     self::$pdo->rollBack();
                 }
                 throw new \RuntimeException('Failed to apply database migration: ' . $migration, 0, $e);

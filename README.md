@@ -52,6 +52,78 @@ Migrations are versioned and applied once per database by the application. SQLit
 - Allow the application to write only to required storage/log locations. Keep database files, environment files, backups, and logs outside `public/`; configure backups, retention, and monitoring at the host.
 - Run the test suite and perform a deployment smoke test (login, role restrictions, appointment booking/cancellation, logout, and database persistence) using only fabricated data.
 
+## Deploying the live demo on HelioHost
+
+HelioHost Johnny is a no-hosting-fee option for a **fabricated-data portfolio demo only**. Its official documentation lists PHP 8.2+ and MariaDB. Free SSL is available through Plesk. Johnny has limited signup availability, requires a monthly Plesk login to avoid inactivity suspension, and states a 97% uptime goal with no SLA or service/data-safety guarantees. Read the [Johnny limits](https://wiki.helionet.org/Johnny), [HelioHost terms](https://heliohost.org/terms/), and [PHP extension list](https://wiki.helionet.org/PHP) before creating an account. Do not use this service for real patient data.
+
+### Create the account and database
+
+1. Sign up for one Johnny account at [heliohost.org/signup](https://heliohost.org/signup/) when the registration window is open. One account per person is allowed. Account activation may take up to two hours.
+2. In Plesk, create one MariaDB database and a user restricted to that database. Use `localhost`, keep remote database access disabled, and save its generated credentials somewhere private.
+3. In Plesk's PHP settings, select PHP 8.2 or newer and verify that **PDO MySQL** is enabled in `phpinfo()`. The PHP configuration differs by server; do not proceed if the required extension is absent.
+4. Enable the free Let's Encrypt certificate in Plesk's **SSL It!** settings and enforce HTTPS for the website.
+
+### Upload the project with a private document root
+
+Use Plesk File Manager or SFTP (HelioHost recommends SFTP, not plain FTP). Keep the source code and secrets above/outside the public `httpdocs` directory. Arrange the account approximately as follows, replacing `<account-home>` with the actual directory above `httpdocs`:
+
+```text
+<account-home>/
+├── .env
+├── app/
+├── config/
+├── database/
+├── vendor/
+├── views/
+└── httpdocs/
+    ├── .htaccess
+    ├── index.php
+    ├── css/
+    ├── images/
+    └── js/
+```
+
+Upload the repository's application directories and the already-installed local `vendor/` directory alongside `httpdocs`; upload only the **contents** of `public/` into `httpdocs/`. Keep `scripts/` outside `httpdocs/` too. Do not upload `.git/`, `.env.example`, tests, local SQLite files, PHPUnit cache, or internal agent/prompt notes. Composer is not required on the hosting server when the prepared `vendor/` directory is uploaded; HelioHost disables process-launch functions such as `exec` and `proc_open`.
+
+Create `.env` at `<account-home>/.env`, not in `httpdocs`, using these production settings and the exact database name, username, and password Plesk assigned:
+
+```dotenv
+APP_NAME="Aurelia Private Clinic"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://your-heliohost-domain
+
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=plesk_assigned_database
+DB_USERNAME=plesk_assigned_database_user
+DB_PASSWORD=replace-with-private-database-password
+DB_SEED_DEMO_DATA=false
+
+SESSION_SECURE=true
+SESSION_SAME_SITE=Lax
+```
+
+Use the free HelioHost subdomain or a domain you control; verify HTTPS works before enabling the live demo. Set `.env` to owner-only readable permissions where Plesk allows.
+
+### Initialize the app and demo accounts
+
+The first web request runs the versioned MySQL migrations. Then provision the administrator and synthetic demo accounts using the PHP CLI **only if the account gives you a supported shell or PHP scheduled-task facility**. Keep `scripts/` outside `httpdocs/`, use one-time unique passwords, save the generated credentials privately, and never put passwords into a public page or GitHub:
+
+```sh
+INITIAL_ADMIN_PASSWORD='use-a-unique-password-of-at-least-16-characters' \
+  php scripts/create-admin.php admin@example.test "Portfolio Administrator"
+PORTFOLIO_DEMO_PASSWORD='use-a-different-unique-password-of-at-least-16-characters' \
+  php scripts/create-portfolio-demo.php
+```
+
+The portfolio script creates fictional patient, doctor, and receptionist accounts with a future confirmed sample appointment. If the free account does **not** provide a private supported way to run PHP CLI tasks, stop and ask before provisioning: do not expose an unauthenticated setup script or put credentials in a public web route.
+
+After setup, sign in at `/login` and exercise the appointment flow with the synthetic patient account. Publish only the patient demo email/password if visitors should share that account; never share the administrator, doctor, or reception credentials. Re-provisioning is intentionally blocked to avoid silently overwriting accounts.
+
+HelioHost is a best-effort shared service, not an SLA-backed or healthcare-compliant host. Keep off-host backups, expect occasional downtime, log into Plesk at least monthly, and use synthetic data only.
+
 ## Deploying the live demo on Render
 
 This repository includes a Docker-based Render Blueprint at `render.yaml`. Because the app stores its demo database on a persistent disk, the Blueprint uses Render's paid `starter` web-service plan; Render does not provide persistent disks for free web services. Review Render's current pricing before creating the service.
