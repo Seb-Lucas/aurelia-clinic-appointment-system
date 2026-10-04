@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: aurelia-clinic-appointment-system
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: APP_NAME
+        value: Aurelia Private Clinic
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: DB_DATABASE
+        value: /var/data/app.sqlite
+      - key: DB_SEED_DEMO_DATA
+        value: "false"
+      - key: SESSION_SECURE
+        value: "true"
+      - key: SESSION_SAME_SITE
+        value: Lax
+    disk:
+      name: aurelia-clinic-data
+      mountPath: /var/data
+      sizeGB: 1

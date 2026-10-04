@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+!.env.example
+.phpunit.cache
+vendor
+storage/*
+public/storage
+/clinic_app
+tests
+prompts
+AGENT_STATE.md
+*Prompt.md
+*UX Prompt.md
