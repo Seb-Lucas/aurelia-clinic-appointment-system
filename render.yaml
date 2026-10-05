@@ -2,7 +2,7 @@ services:
   - type: web
     name: aurelia-clinic-appointment-system
     runtime: docker
-    plan: starter
+    plan: free
     healthCheckPath: /health
     dockerfilePath: ./Dockerfile
     dockerContext: .
@@ -16,14 +16,14 @@ services:
       - key: DB_CONNECTION
         value: sqlite
       - key: DB_DATABASE
-        value: /var/data/app.sqlite
+        value: /tmp/aurelia-data/app.sqlite
       - key: DB_SEED_DEMO_DATA
         value: "false"
+      - key: PORTFOLIO_DEMO_STANDALONE
+        value: "true"
+      - key: PORTFOLIO_DEMO_PASSWORD
+        sync: false
       - key: SESSION_SECURE
         value: "true"
       - key: SESSION_SAME_SITE
         value: Lax
-    disk:
-      name: aurelia-clinic-data
-      mountPath: /var/data
-      sizeGB: 1

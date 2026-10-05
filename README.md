@@ -126,30 +126,15 @@ HelioHost is a best-effort shared service, not an SLA-backed or healthcare-compl
 
 ## Deploying the live demo on Render
 
-This repository includes a Docker-based Render Blueprint at `render.yaml`. Because the app stores its demo database on a persistent disk, the Blueprint uses Render's paid `starter` web-service plan; Render does not provide persistent disks for free web services. Review Render's current pricing before creating the service.
+This repository includes a Docker-based Render Blueprint at `render.yaml`, configured for Render's free web-service plan. Free services have an ephemeral filesystem, so the SQLite database and all account changes are lost when the service spins down, restarts, or redeploys. A free service also spins down after 15 minutes without traffic; its next request may take about a minute while it starts. See Render's [free instance limitations](https://render.com/docs/free) and [persistent disk availability](https://render.com/docs/disks).
 
 1. Push this repository to GitHub without `.env`, `storage/app.sqlite`, `vendor/`, or local test output.
 2. In Render, choose **New → Blueprint**, connect the GitHub repository, review the proposed `aurelia-clinic-appointment-system` web service, and apply it. The Dockerfile installs the required PHP PDO drivers and Apache serves only `public/`.
-3. Wait for `/health` to report healthy. Render provisions a 1 GB persistent disk at `/var/data`; the application creates and migrates `/var/data/app.sqlite` on first start. Demo seeding remains disabled.
-4. Create the first administrator from the Render service Shell. Set a unique password in the shell session (do not save it in GitHub or the Blueprint), then run the one-time provisioning script:
-   ```sh
-   read -s -p "Initial admin password: " INITIAL_ADMIN_PASSWORD; echo
-   export INITIAL_ADMIN_PASSWORD
-   php scripts/create-admin.php admin@example.com "Portfolio Administrator"
-   unset INITIAL_ADMIN_PASSWORD
-   ```
-   The script refuses to overwrite an existing account or create another initial administrator.
-5. Provision a synthetic patient, doctor, receptionist, schedule, and future appointment for the live demo:
-   ```sh
-   read -s -p "Patient demo password (16+ characters): " PORTFOLIO_DEMO_PASSWORD; echo
-   export PORTFOLIO_DEMO_PASSWORD
-   php scripts/create-portfolio-demo.php
-   unset PORTFOLIO_DEMO_PASSWORD
-   ```
-   The generated doctor and receptionist credentials are never printed; only the patient account password is eligible for optional public demo access. Share that patient-only password only if you intend to let visitors use the shared synthetic account, and rotate it if needed. Never publish administrator credentials.
-6. Copy the generated HTTPS service URL into the portfolio link. Recheck patient sign-in, appointment booking/cancellation, role restrictions, logout, and persistent data after a redeploy.
+3. During the initial Blueprint setup, enter a unique patient demo password of at least 16 characters for `PORTFOLIO_DEMO_PASSWORD`. Render stores it as an environment secret; don't commit it to GitHub. The startup script creates a fictional patient, doctor, receptionist, schedule, and future appointment when the temporary database is empty. It creates no administrator account and does not log demo passwords.
+4. Wait for `/health` to report healthy, then sign in using `patient.demo@example.test` and the password you supplied to Render. Publish the patient demo password only if you intentionally want visitors to use the shared synthetic account; never publish staff or administrator credentials.
+5. Copy the generated HTTPS service URL into the portfolio link. Check sign-in, appointment booking/cancellation, role restrictions, and logout. Expect any user or appointment changes to disappear after a spin-down or redeploy, and the first visit after inactivity to have a cold-start delay.
 
-The Render disk is attached to a single service instance, so this SQLite portfolio deployment is intentionally single-instance. For multi-instance traffic or real operational use, move to a managed database and obtain a separate privacy/security/compliance review.
+The free service's included hours are shared across your Render workspace and can run out; check Render's current usage and billing pages. This configuration is intended for a low-traffic, synthetic-data portfolio demonstration, not persistent records or real operational/healthcare use.
 
 ## Scope and safety
 

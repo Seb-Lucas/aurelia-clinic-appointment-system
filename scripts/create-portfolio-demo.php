@@ -25,23 +25,33 @@ $connectionConfig['seed_demo_data'] = false;
 $connectionConfig['environment'] = 'production';
 $pdo = Database::initialize($connectionConfig);
 
-if ($pdo->query("SELECT 1 FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn() === false) {
-    fwrite(STDERR, "Create the private administrator account before provisioning portfolio demo accounts.\n");
-    exit(1);
-}
-
 $demoEmails = [
     'patient.demo@example.test',
     'doctor.demo@example.test',
     'reception.demo@example.test',
 ];
 $checkEmail = $pdo->prepare('SELECT 1 FROM users WHERE email = :email LIMIT 1');
+$existingAccounts = 0;
 foreach ($demoEmails as $email) {
     $checkEmail->execute(['email' => $email]);
     if ($checkEmail->fetchColumn() !== false) {
-        fwrite(STDERR, "A portfolio demo account already exists; refusing to overwrite demo data.\n");
-        exit(1);
+        $existingAccounts++;
     }
+}
+
+if ($existingAccounts === count($demoEmails)) {
+    fwrite(STDOUT, "Portfolio demo accounts already exist; leaving demo data unchanged.\n");
+    exit(0);
+}
+if ($existingAccounts > 0) {
+    fwrite(STDERR, "Some portfolio demo accounts already exist; refusing to overwrite or partially recreate demo data.\n");
+    exit(1);
+}
+
+if (getenv('PORTFOLIO_DEMO_STANDALONE') !== 'true'
+    && $pdo->query("SELECT 1 FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn() === false) {
+    fwrite(STDERR, "Create the private administrator account before provisioning portfolio demo accounts.\n");
+    exit(1);
 }
 
 $randomPassword = static fn(): string => bin2hex(random_bytes(24));
@@ -213,8 +223,10 @@ try {
 }
 
 fwrite(STDOUT, "Portfolio demo accounts created with synthetic records.\n");
-fwrite(STDOUT, "Save these generated passwords securely; they are not stored in source control.\n");
-fwrite(STDOUT, "Patient sign-in: {$demoEmails[0]} / {$password}\n");
-fwrite(STDOUT, "Doctor workspace: {$demoEmails[1]} / {$doctorDemoPassword}\n");
-fwrite(STDOUT, "Reception workspace: {$demoEmails[2]} / {$receptionDemoPassword}\n");
-fwrite(STDOUT, "Publish the patient password only if you intentionally want public demo sign-in access.\n");
+if (getenv('PORTFOLIO_DEMO_QUIET') !== 'true') {
+    fwrite(STDOUT, "Save these generated passwords securely; they are not stored in source control.\n");
+    fwrite(STDOUT, "Patient sign-in: {$demoEmails[0]} / {$password}\n");
+    fwrite(STDOUT, "Doctor workspace: {$demoEmails[1]} / {$doctorDemoPassword}\n");
+    fwrite(STDOUT, "Reception workspace: {$demoEmails[2]} / {$receptionDemoPassword}\n");
+    fwrite(STDOUT, "Publish the patient password only if you intentionally want public demo sign-in access.\n");
+}
