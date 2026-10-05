@@ -23,6 +23,10 @@ services:
         value: "true"
       - key: PORTFOLIO_DEMO_PASSWORD
         sync: false
+      - key: PORTFOLIO_DOCTOR_DEMO_PASSWORD
+        generateValue: true
+      - key: PORTFOLIO_RECEPTION_DEMO_PASSWORD
+        generateValue: true
       - key: SESSION_SECURE
         value: "true"
       - key: SESSION_SAME_SITE

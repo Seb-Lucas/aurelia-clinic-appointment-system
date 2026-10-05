@@ -55,8 +55,26 @@ if (getenv('PORTFOLIO_DEMO_STANDALONE') !== 'true'
 }
 
 $randomPassword = static fn(): string => bin2hex(random_bytes(24));
-$doctorDemoPassword = $randomPassword();
-$receptionDemoPassword = $randomPassword();
+$standalone = getenv('PORTFOLIO_DEMO_STANDALONE') === 'true';
+$doctorDemoPassword = getenv('PORTFOLIO_DOCTOR_DEMO_PASSWORD');
+$receptionDemoPassword = getenv('PORTFOLIO_RECEPTION_DEMO_PASSWORD');
+foreach ([
+    'doctor' => $doctorDemoPassword,
+    'reception' => $receptionDemoPassword,
+] as $role => $rolePassword) {
+    if ($rolePassword === false || strlen($rolePassword) < 16) {
+        if ($standalone) {
+            fwrite(STDERR, "Set PORTFOLIO_" . strtoupper($role) . "_DEMO_PASSWORD to a unique password of at least 16 characters.\n");
+            exit(1);
+        }
+    }
+}
+$doctorDemoPassword = is_string($doctorDemoPassword) && strlen($doctorDemoPassword) >= 16
+    ? $doctorDemoPassword
+    : $randomPassword();
+$receptionDemoPassword = is_string($receptionDemoPassword) && strlen($receptionDemoPassword) >= 16
+    ? $receptionDemoPassword
+    : $randomPassword();
 $nextWeekday = new DateTimeImmutable('tomorrow');
 while ((int) $nextWeekday->format('N') > 5) {
     $nextWeekday = $nextWeekday->modify('+1 day');

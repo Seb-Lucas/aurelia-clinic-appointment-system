@@ -20,7 +20,7 @@ if [ "${PORTFOLIO_DEMO_STANDALONE:-false}" = "true" ]; then
         exit 1
     fi
 
-    su -p -s /bin/sh www-data -c 'cd /var/www/html && exec php scripts/create-portfolio-demo.php'
+    su -p -s /bin/sh www-data -c 'cd /var/www/html && PORTFOLIO_DEMO_QUIET=true exec php scripts/create-portfolio-demo.php'
 fi
 
 exec docker-php-entrypoint "$@"
