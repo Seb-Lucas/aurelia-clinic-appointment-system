@@ -40,7 +40,11 @@ class AuthController
             return redirect('/login');
         }
 
-        return redirect(($result['user']->role ?? '') === 'doctor' ? '/doctor' : '/dashboard');
+        return redirect(match ($result['user']->role ?? '') {
+            'doctor' => '/doctor',
+            'admin' => '/admin',
+            default => '/dashboard',
+        });
     }
 
     public function logout(Request $request): Response

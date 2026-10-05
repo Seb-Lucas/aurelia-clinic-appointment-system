@@ -12,6 +12,7 @@ use App\Config;
 use App\Core\Database;
 
 $password = getenv('PORTFOLIO_DEMO_PASSWORD');
+$standalone = getenv('PORTFOLIO_DEMO_STANDALONE') === 'true';
 if ($password === false || strlen($password) < 16) {
     fwrite(STDERR, "Set PORTFOLIO_DEMO_PASSWORD to a unique password of at least 16 characters.\n");
     exit(1);
@@ -30,37 +31,34 @@ $demoEmails = [
     'doctor.demo@example.test',
     'reception.demo@example.test',
 ];
+$adminEmail = 'admin.demo@example.test';
 $checkEmail = $pdo->prepare('SELECT 1 FROM users WHERE email = :email LIMIT 1');
-$existingAccounts = 0;
-foreach ($demoEmails as $email) {
+$existingAccounts = [];
+foreach (array_merge($demoEmails, [$adminEmail]) as $email) {
     $checkEmail->execute(['email' => $email]);
-    if ($checkEmail->fetchColumn() !== false) {
-        $existingAccounts++;
-    }
+    $existingAccounts[$email] = $checkEmail->fetchColumn() !== false;
 }
 
-if ($existingAccounts === count($demoEmails)) {
-    fwrite(STDOUT, "Portfolio demo accounts already exist; leaving demo data unchanged.\n");
-    exit(0);
-}
-if ($existingAccounts > 0) {
+$existingDemoAccounts = array_slice($existingAccounts, 0, count($demoEmails));
+$existingDemoCount = count(array_filter($existingDemoAccounts, static fn(bool $exists): bool => $exists));
+if ($existingDemoCount !== 0 && $existingDemoCount !== count($demoEmails)) {
     fwrite(STDERR, "Some portfolio demo accounts already exist; refusing to overwrite or partially recreate demo data.\n");
     exit(1);
 }
 
-if (getenv('PORTFOLIO_DEMO_STANDALONE') !== 'true'
-    && $pdo->query("SELECT 1 FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn() === false) {
+if (!$standalone && $pdo->query("SELECT 1 FROM users WHERE role = 'admin' LIMIT 1")->fetchColumn() === false) {
     fwrite(STDERR, "Create the private administrator account before provisioning portfolio demo accounts.\n");
     exit(1);
 }
 
 $randomPassword = static fn(): string => bin2hex(random_bytes(24));
-$standalone = getenv('PORTFOLIO_DEMO_STANDALONE') === 'true';
 $doctorDemoPassword = getenv('PORTFOLIO_DOCTOR_DEMO_PASSWORD');
 $receptionDemoPassword = getenv('PORTFOLIO_RECEPTION_DEMO_PASSWORD');
+$adminDemoPassword = getenv('PORTFOLIO_ADMIN_DEMO_PASSWORD');
 foreach ([
     'doctor' => $doctorDemoPassword,
     'reception' => $receptionDemoPassword,
+    'admin' => $adminDemoPassword,
 ] as $role => $rolePassword) {
     if ($rolePassword === false || strlen($rolePassword) < 16) {
         if ($standalone) {
@@ -75,6 +73,11 @@ $doctorDemoPassword = is_string($doctorDemoPassword) && strlen($doctorDemoPasswo
 $receptionDemoPassword = is_string($receptionDemoPassword) && strlen($receptionDemoPassword) >= 16
     ? $receptionDemoPassword
     : $randomPassword();
+$adminDemoPassword = is_string($adminDemoPassword) && strlen($adminDemoPassword) >= 16
+    ? $adminDemoPassword
+    : $randomPassword();
+$createAdminAccount = $standalone && !$existingAccounts[$adminEmail];
+$createDemoAccounts = $existingDemoCount === 0;
 $nextWeekday = new DateTimeImmutable('tomorrow');
 while ((int) $nextWeekday->format('N') > 5) {
     $nextWeekday = $nextWeekday->modify('+1 day');
@@ -82,6 +85,31 @@ while ((int) $nextWeekday->format('N') > 5) {
 
 try {
     $pdo->beginTransaction();
+
+    if ($createAdminAccount) {
+        $adminHash = password_hash($adminDemoPassword, PASSWORD_DEFAULT);
+        if ($adminHash === false) {
+            throw new RuntimeException('Unable to hash the portfolio administrator password.');
+        }
+        $createAdmin = $pdo->prepare(
+            'INSERT INTO users (name, email, password_hash, role, status) VALUES (:name, :email, :password_hash, :role, :status)'
+        );
+        $createAdmin->execute([
+            'name' => 'Portfolio Administrator',
+            'email' => $adminEmail,
+            'password_hash' => $adminHash,
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+    }
+
+    if (!$createDemoAccounts) {
+        $pdo->commit();
+        fwrite(STDOUT, $createAdminAccount
+            ? "Portfolio administrator account created; existing demo accounts were left unchanged.\n"
+            : "Portfolio accounts already exist; leaving demo data unchanged.\n");
+        exit(0);
+    }
 
     $department = $pdo->prepare('SELECT id FROM departments WHERE name = :name LIMIT 1');
     $department->execute(['name' => 'General Medicine']);
@@ -243,6 +271,9 @@ try {
 fwrite(STDOUT, "Portfolio demo accounts created with synthetic records.\n");
 if (getenv('PORTFOLIO_DEMO_QUIET') !== 'true') {
     fwrite(STDOUT, "Save these generated passwords securely; they are not stored in source control.\n");
+    if (!$standalone) {
+        fwrite(STDOUT, "Administrator sign-in: {$adminEmail} / {$adminDemoPassword}\n");
+    }
     fwrite(STDOUT, "Patient sign-in: {$demoEmails[0]} / {$password}\n");
     fwrite(STDOUT, "Doctor workspace: {$demoEmails[1]} / {$doctorDemoPassword}\n");
     fwrite(STDOUT, "Reception workspace: {$demoEmails[2]} / {$receptionDemoPassword}\n");

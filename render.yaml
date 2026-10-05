@@ -27,6 +27,8 @@ services:
         generateValue: true
       - key: PORTFOLIO_RECEPTION_DEMO_PASSWORD
         generateValue: true
+      - key: PORTFOLIO_ADMIN_DEMO_PASSWORD
+        generateValue: true
       - key: SESSION_SECURE
         value: "true"
       - key: SESSION_SAME_SITE

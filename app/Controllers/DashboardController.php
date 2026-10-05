@@ -30,6 +30,9 @@ class DashboardController
         if ($role === 'doctor') {
             return redirect('/doctor');
         }
+        if ($role === 'admin') {
+            return redirect('/admin');
+        }
 
         $stats = [
             'Appointments' => 0,
