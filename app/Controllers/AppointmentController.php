@@ -18,7 +18,7 @@ class AppointmentController
         $appointments = [];
         if ($user && ($user['role'] ?? '') === 'patient') {
             $patient = (new PatientRepository())->findByUserId((int) ($user['id'] ?? 0));
-            $appointments = $patient ? (new AppointmentRepository())->findByPatientId($patient->id) : [];
+            $appointments = $patient ? (new AppointmentRepository())->findDetailedByPatientId($patient->id) : [];
         }
 
         return Response::view('appointments/index', [

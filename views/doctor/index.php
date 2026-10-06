@@ -1,17 +1,44 @@
 <?php ob_start(); ?>
-<div class="page-header"><div><p class="eyebrow">Care team workspace</p><h1>Doctor workspace</h1><p>Welcome, <?= e($user['name'] ?? 'Doctor') ?>. Keep your schedule and care responsibilities in view.</p></div></div>
-<div class="action-grid">
-    <a class="action-card" href="/doctor/schedule"><strong>Manage schedule</strong><span>Set the recurring availability patients can book.</span></a>
-    <a class="action-card" href="/doctor#assigned-appointments"><strong>Review appointments</strong><span>Approve requests and manage your assigned visits.</span></a>
-    <a class="action-card" href="/notifications"><strong>View notifications</strong><span>Check appointment reminders and system updates.</span></a>
+<div class="page-header">
+    <div>
+        <span class="workspace-topline">Care team workspace</span>
+        <h1>Doctor workspace</h1>
+        <p>Welcome, <?= e($user['name'] ?? 'Doctor') ?>. Keep your schedule and care responsibilities in view.</p>
+    </div>
 </div>
+
+<div class="action-grid">
+    <a class="action-card" href="/doctor/schedule">
+        <span class="action-icon" aria-hidden="true">S</span>
+        <strong>Manage schedule</strong>
+        <span>Set the recurring availability patients can book.</span>
+    </a>
+    <a class="action-card" href="/doctor#assigned-appointments">
+        <span class="action-icon" aria-hidden="true">A</span>
+        <strong>Review appointments</strong>
+        <span>Approve requests and manage your assigned visits.</span>
+    </a>
+    <a class="action-card" href="/notifications">
+        <span class="action-icon" aria-hidden="true">N</span>
+        <strong>View notifications</strong>
+        <span>Check appointment reminders and system updates.</span>
+    </a>
+</div>
+
 <div class="stats-grid">
     <div class="card stat-card"><span class="stat-label">Today's appointments</span><span class="stat-value"><?= e(count($todayAppointments ?? [])) ?></span></div>
     <div class="card stat-card"><span class="stat-label">Pending requests</span><span class="stat-value"><?= e($pendingCount ?? 0) ?></span></div>
     <div class="card stat-card"><span class="stat-label">Upcoming appointments</span><span class="stat-value"><?= e($upcomingCount ?? 0) ?></span></div>
 </div>
+
 <div class="card" id="assigned-appointments">
-    <div class="card-header"><div><h2>Assigned appointments</h2><p>Review requests and update only appointments assigned to you.</p></div></div>
+    <div class="card-header">
+        <div>
+            <h2>Assigned appointments</h2>
+            <p>Review requests and update only appointments assigned to you.</p>
+        </div>
+        <span class="pilot-badge">Care queue</span>
+    </div>
     <?php if (empty($appointments)): ?>
         <div class="empty-state"><p>No appointments are currently assigned to you.</p></div>
     <?php else: ?>
@@ -30,10 +57,10 @@
                             <?php if ($appointment['status'] === 'pending'): ?>
                                 <div class="actions">
                                     <form method="POST" action="/doctor/appointments/<?= e($appointment['id']) ?>/status">
-                                        <?= csrf_field() ?><input type="hidden" name="status" value="confirmed"><button class="button-small" type="submit">Confirm Appointment</button>
+                                        <?= csrf_field() ?><input type="hidden" name="status" value="confirmed"><button class="button-small" type="submit">Confirm</button>
                                     </form>
                                     <form method="POST" action="/doctor/appointments/<?= e($appointment['id']) ?>/status" data-confirm="Decline this appointment request?">
-                                        <?= csrf_field() ?><input type="hidden" name="status" value="declined"><button class="button-small button-danger" type="submit">Decline Request</button>
+                                        <?= csrf_field() ?><input type="hidden" name="status" value="declined"><button class="button-small button-danger" type="submit">Decline</button>
                                     </form>
                                 </div>
                             <?php elseif ($appointment['status'] === 'confirmed'): ?>
@@ -46,7 +73,7 @@
                                 </form>
                             <?php elseif ($appointment['status'] === 'in_progress'): ?>
                                 <form method="POST" action="/doctor/appointments/<?= e($appointment['id']) ?>/status">
-                                    <?= csrf_field() ?><input type="hidden" name="status" value="completed"><button class="button-small" type="submit">Complete Visit</button>
+                                    <?= csrf_field() ?><input type="hidden" name="status" value="completed"><button class="button-small" type="submit">Complete</button>
                                 </form>
                             <?php else: ?>
                                 <span class="muted">No action</span>

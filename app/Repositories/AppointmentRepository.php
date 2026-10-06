@@ -44,6 +44,15 @@ class AppointmentRepository
         return array_map(fn(array $row) => Appointment::fromArray($row), $rows);
     }
 
+    public function findDetailedByPatientId(int $patientId): array
+    {
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare('SELECT a.id, a.patient_id, a.doctor_id, a.service_id, a.appointment_date, a.start_time, a.end_time, a.status, a.notes, d_user.name AS doctor_name, s.name AS service_name FROM appointments a INNER JOIN doctors d ON d.id = a.doctor_id INNER JOIN users d_user ON d_user.id = d.user_id INNER JOIN services s ON s.id = a.service_id WHERE a.patient_id = :patient_id ORDER BY a.appointment_date DESC, a.start_time DESC');
+        $stmt->execute(['patient_id' => $patientId]);
+
+        return $stmt->fetchAll();
+    }
+
     public function findByDoctorId(int $doctorId): array
     {
         $pdo = Database::getConnection();

@@ -6,11 +6,31 @@
         <p>Choose a service, date, and available time. You can review the details before submitting.</p>
     </div>
 </div>
+
 <div class="card form-card">
     <div class="card-header">
-        <div><h2>Appointment details</h2><p>All fields marked as required must be completed.</p></div>
+        <div>
+            <h2>Appointment details</h2>
+            <p>All fields marked as required must be completed.</p>
+        </div>
         <span class="badge">Step 1 of 1</span>
     </div>
+
+    <div class="booking-summary">
+        <dl class="info-item">
+            <dt>Doctor</dt>
+            <dd><?= e(($doctors[0]['name'] ?? 'Care team')) ?></dd>
+        </dl>
+        <dl class="info-item">
+            <dt>Service</dt>
+            <dd><?= e(($services[0]['name'] ?? 'Consultation')) ?></dd>
+        </dl>
+        <dl class="info-item">
+            <dt>Preferred date</dt>
+            <dd><?= e($appointment_date ?? date('Y-m-d')) ?></dd>
+        </dl>
+    </div>
+
     <form method="POST" action="/appointments/store" data-booking-form>
         <?= csrf_field() ?>
         <div class="form-group">
