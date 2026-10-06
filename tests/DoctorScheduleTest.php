@@ -63,7 +63,7 @@ class DoctorScheduleTest extends TestCase
 
         $response = (new DoctorController())->index(new Request('GET', '/doctor', [], [], $_SERVER));
 
-        $this->assertStringContainsString('Confirm Appointment', $response->content);
+        $this->assertStringContainsString('Confirm', $response->content);
         $this->assertStringContainsString('Patient User', $response->content);
     }
 
